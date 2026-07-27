@@ -48,11 +48,21 @@ const PORT = process.env.PORT || 5000;
 app.use(express.json());
 
 // CORS (Cross-Origin Resource Sharing): browsers block requests from one
-// origin (localhost:5173) to a different origin (localhost:5000) by default.
-// This middleware adds the necessary response headers to allow it.
+// origin to a different origin by default.
+// CLIENT_ORIGIN can be a comma-separated list so both local dev (localhost:5173)
+// and the deployed Vercel URL work without changing code between environments.
+const allowedOrigins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map((o) => o.trim());
+
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      // Allow requests with no Origin header (e.g. curl, Postman, server-to-server)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      callback(new Error(`CORS: origin ${origin} not allowed`));
+    },
     credentials: true,
   })
 );
